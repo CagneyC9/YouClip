@@ -4,11 +4,19 @@
   "version": "1.0",
   "description": "Creates shareable clips from YouTube videos.",
   "permissions": ["clipboardWrite"],
+
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*"],
       "js": ["content.js"],
       "css": ["style.css"]
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["scissors.svg"],
+      "matches": ["*://www.youtube.com/*"]
     }
   ]
 }

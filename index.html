@@ -63,6 +63,11 @@
         margin-top: 20px;
         color: #ff8a80;
       }
+
+      .clip-title {
+        margin: 16px 0 0;
+        font-size: 20px;
+      }
     </style>
   </head>
   <body>
@@ -70,6 +75,8 @@
       <div class="player-wrap">
         <div id="player"></div>
       </div>
+
+      <h1 id="clip-title" class="clip-title" hidden></h1>
 
       <div class="meta">
         <div class="pill" id="clip-range">Clip range: waiting…</div>
@@ -85,9 +92,16 @@
       const videoId = params.get("v");
       const start = Number(params.get("s") || 0);
       const end = Number(params.get("e") || 0);
+      const clipTitle = params.get("t");
 
       const errorEl = document.getElementById("error");
       const rangeEl = document.getElementById("clip-range");
+      const titleEl = document.getElementById("clip-title");
+
+      if (clipTitle) {
+        titleEl.textContent = clipTitle;
+        titleEl.hidden = false;
+      }
 
       if (!videoId || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
         errorEl.style.display = "block";
