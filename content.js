@@ -768,3 +768,55 @@ document.addEventListener(
     "yt-navigate-finish",
     handleNavigation
 );
+
+// -----------------------------
+// Keyboard shortcuts
+// -----------------------------
+
+document.addEventListener("keydown", (event) => {
+    const target = event.target;
+
+    if (
+        target instanceof HTMLElement &&
+        (
+            target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable
+        )
+    ) {
+        return;
+    }
+
+    if (!isWatchPage()) {
+        return;
+    }
+
+    const video = getVideo();
+
+    if (!video) {
+        return;
+    }
+
+    if (event.key.toLowerCase() === "s") {
+        if (!clipper.classList.contains("youtube-clipper-open")) {
+            openModal();
+        }
+
+        startTime = video.currentTime;
+        clampRange();
+        refreshUi();
+        startLoopPreview();
+        autoCopyClipLink();
+    } else if (event.key.toLowerCase() === "e") {
+        if (!clipper.classList.contains("youtube-clipper-open")) {
+            openModal();
+        }
+
+        endTime = video.currentTime;
+        clampRange();
+        refreshUi();
+        startLoopPreview();
+        autoCopyClipLink();
+    }
+});
+}
