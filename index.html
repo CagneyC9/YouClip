@@ -1,164 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YouTube Clip</title>
-    <style>
-      :root {
-        color-scheme: dark;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Clip</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
 
-      * {
-        box-sizing: border-box;
-      }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0f0f0f;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #0f0f0f;
-        color: white;
-        font-family: Arial, sans-serif;
-      }
+    .container { width: min(1100px, 92vw); }
 
-      .container {
-        width: min(1100px, 92vw);
-      }
+    .player-wrap {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    }
 
-      .player-wrap {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        background: #000;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
-      }
+    #player { width: 100%; height: 100%; }
 
-      #player {
-        width: 100%;
-        height: 100%;
-      }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
 
-      .meta {
-        margin-top: 16px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
+    button {
+      padding: 9px 15px;
+      border: 0;
+      border-radius: 8px;
+      background: #3ea6ff;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-      .pill {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 8px 12px;
-        border-radius: 999px;
-        font-size: 14px;
-      }
+    #progress {
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+    }
 
-      .error {
-        display: none;
-        margin-top: 20px;
-        color: #ff8a80;
-      }
+    #time {
+      min-width: 85px;
+      text-align: right;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
 
-      .clip-title {
-        margin: 16px 0 0;
-        font-size: 20px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="player-wrap">
-        <div id="player"></div>
-      </div>
+    .details {
+      margin-top: 16px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: #aaa;
+      font-size: 14px;
+    }
 
-      <h1 id="clip-title" class="clip-title" hidden></h1>
+    .details a { color: #3ea6ff; }
 
-      <div class="meta">
-        <div class="pill" id="clip-range">Clip range: waiting…</div>
-      </div>
+    .clip-title {
+      margin: 16px 0 0;
+      font-size: 20px;
+    }
 
-      <div id="error" class="error">
-        Missing clip data. Use a link like: /?v=VIDEO_ID&s=30&e=60
-      </div>
+    .error {
+      display: none;
+      margin-top: 20px;
+      color: #ff8a80;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="player-wrap">
+      <div id="player"></div>
     </div>
 
-    <script>
-      const params = new URLSearchParams(window.location.search);
-      const videoId = params.get("v");
-      const start = Number(params.get("s") || 0);
-      const end = Number(params.get("e") || 0);
-      const clipTitle = params.get("t");
+    <h1 id="clip-title" class="clip-title" hidden></h1>
 
-      const errorEl = document.getElementById("error");
-      const rangeEl = document.getElementById("clip-range");
-      const titleEl = document.getElementById("clip-title");
+    <div class="controls">
+      <button id="play-button" type="button" disabled>Play</button>
+      <input id="progress" type="range" min="0" max="1000" value="0"
+             aria-label="Clip position" disabled />
+      <span id="time">0:00 / 0:00</span>
+    </div>
 
-      if (clipTitle) {
-        titleEl.textContent = clipTitle;
-        titleEl.hidden = false;
-      }
+    <div class="details">
+      <span id="clip-range"></span>
+      <a id="original-link" target="_blank" rel="noopener noreferrer">
+        Watch original video
+      </a>
+    </div>
 
-      if (!videoId || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-        errorEl.style.display = "block";
-        throw new Error("Invalid clip parameters");
-      }
+    <p id="error" class="error">
+      Invalid clip link. The link needs a video ID, start time, and end time.
+    </p>
+  </main>
 
-      rangeEl.textContent = `Clip range: ${formatSeconds(start)} to ${formatSeconds(end)}`;
+  <script>
+    const params = new URLSearchParams(location.search);
+    const videoId = params.get("v");
+    const start = Number(params.get("s"));
+    const end = Number(params.get("e"));
+    const clipTitle = params.get("t");
+    const duration = end - start;
 
-      function formatSeconds(value) {
-        const minutes = Math.floor(value / 60);
-        const seconds = String(Math.floor(value % 60)).padStart(2, "0");
-        return `${minutes}:${seconds}`;
-      }
+    const errorEl = document.getElementById("error");
+    const rangeEl = document.getElementById("clip-range");
+    const titleEl = document.getElementById("clip-title");
+    const originalLink = document.getElementById("original-link");
+    const playButton = document.getElementById("play-button");
+    const progress = document.getElementById("progress");
+    const timeEl = document.getElementById("time");
 
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
+    function formatTime(value) {
+      const seconds = Math.floor(Math.max(0, value));
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remainder = String(seconds % 60).padStart(2, "0");
 
-      let player;
-      let intervalId = null;
+      return hours
+        ? `${hours}:${String(minutes).padStart(2, "0")}:${remainder}`
+        : `${minutes}:${remainder}`;
+    }
 
-      function onPlayerReady() {
+    if (
+      !videoId ||
+      !/^[\w-]{11}$/.test(videoId) ||
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      start < 0 ||
+      end <= start
+    ) {
+      errorEl.style.display = "block";
+      throw new Error("Invalid clip parameters");
+    }
+
+    if (clipTitle) {
+      titleEl.textContent = clipTitle;
+      titleEl.hidden = false;
+      document.title = `${clipTitle} | YouTube Clip`;
+    }
+
+    rangeEl.textContent =
+      `Clip from ${formatTime(start)} to ${formatTime(end)}`;
+
+    originalLink.href =
+      `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}&t=${Math.floor(start)}s`;
+
+    timeEl.textContent = `0:00 / ${formatTime(duration)}`;
+
+    let player;
+    let timerId;
+
+    function updateControls() {
+      if (!player || typeof player.getCurrentTime !== "function") return;
+
+      const current = player.getCurrentTime();
+      const elapsed = Math.max(0, Math.min(duration, current - start));
+
+      progress.value = String(Math.round((elapsed / duration) * 1000));
+      timeEl.textContent =
+        `${formatTime(elapsed)} / ${formatTime(duration)}`;
+
+      if (current >= end) {
+        player.pauseVideo();
         player.seekTo(start, true);
+        progress.value = "0";
+        timeEl.textContent = `0:00 / ${formatTime(duration)}`;
+        playButton.textContent = "Replay";
+      }
+    }
+
+    playButton.addEventListener("click", () => {
+      if (!player) return;
+
+      if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+      } else {
+        const current = player.getCurrentTime();
+        if (current < start || current >= end) {
+          player.seekTo(start, true);
+        }
         player.playVideo();
+      }
+    });
 
-        intervalId = setInterval(() => {
-          if (!player || !player.getCurrentTime) {
-            return;
-          }
+    progress.addEventListener("input", () => {
+      if (!player) return;
 
-          const currentTime = player.getCurrentTime();
+      const elapsed = (Number(progress.value) / 1000) * duration;
+      player.seekTo(start + elapsed, true);
+      timeEl.textContent =
+        `${formatTime(elapsed)} / ${formatTime(duration)}`;
+    });
 
-          if (currentTime >= end) {
-            player.pauseVideo();
-            if (intervalId) {
-              clearInterval(intervalId);
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player("player", {
+        videoId,
+        playerVars: {
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          rel: 0,
+          playsinline: 1
+        },
+        events: {
+          onReady: () => {
+            player.seekTo(start, true);
+            playButton.disabled = false;
+            progress.disabled = false;
+            timerId = setInterval(updateControls, 100);
+          },
+          onStateChange: (event) => {
+            if (event.data === YT.PlayerState.PLAYING) {
+              playButton.textContent = "Pause";
+            } else if (event.data === YT.PlayerState.PAUSED) {
+              playButton.textContent = "Play";
             }
           }
-        }, 250);
-      }
+        }
+      });
+    }
 
-      function onYouTubeIframeAPIReady() {
-        player = new YT.Player("player", {
-          videoId,
-          playerVars: {
-            autoplay: 1,
-            controls: 1,
-            rel: 0,
-            modestbranding: 1,
-          },
-          events: {
-            onReady: onPlayerReady,
-          },
-        });
-      }
+    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
-      window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-    </script>
-  </body>
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  </script>
+</body>
 </html>

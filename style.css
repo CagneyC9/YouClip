@@ -244,6 +244,20 @@
 }
 
 
+.youtube-clipper-playhead {
+    position: absolute;
+    top: -6px;
+
+    width: 2px;
+    height: 20px;
+
+    background: #ff4e45;
+
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+
+
 /* --------------------------------
    Duration label
 -------------------------------- */
@@ -265,8 +279,35 @@
 .youtube-clipper-modal-footer {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 12px;
+}
+
+.youtube-clipper-modal-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.youtube-clipper-zoom {
+    border: none;
+    border-radius: 18px;
+
+    padding: 0 12px;
+    min-height: 32px;
+
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f1f1;
+
+    font-family: Roboto, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+
+    cursor: pointer;
+}
+
+.youtube-clipper-zoom:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .youtube-clipper-cancel {
