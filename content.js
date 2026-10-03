@@ -52,11 +52,9 @@ if (window.__youtubeClipperInitialized) {
         return null;
     }
 
-    const clipUrl = new URL(
-        `watch/${encodeURIComponent(videoId)}`,
-        CLIP_VIEWER_BASE_URL
-    );
+    const clipUrl = new URL("watch", CLIP_VIEWER_BASE_URL);
 
+    clipUrl.searchParams.set("v", videoId);
     clipUrl.searchParams.set("t", startTime.toFixed(1));
     clipUrl.searchParams.set("end", endTime.toFixed(1));
 
