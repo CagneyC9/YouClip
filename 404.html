@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>YouClip</title>
+
+    <script>
+        const path = window.location.pathname;
+
+        if (path.startsWith("/watch/")) {
+            const videoId = path.substring("/watch/".length);
+
+            if (videoId) {
+                const params = window.location.search;
+
+                window.location.replace(
+                    "/watch/?v=" +
+                    encodeURIComponent(videoId) +
+                    (params ? "&" + params.substring(1) : "")
+                );
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <p>Page not found.</p>
+</body>
+</html>
