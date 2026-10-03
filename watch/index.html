@@ -74,11 +74,6 @@
 
     .details a { color: #3ea6ff; }
 
-    .clip-title {
-      margin: 16px 0 0;
-      font-size: 20px;
-    }
-
     .error {
       display: none;
       margin-top: 20px;
@@ -91,9 +86,6 @@
     <div class="player-wrap">
       <div id="player"></div>
     </div>
-
-    <h1 id="clip-title" class="clip-title" hidden></h1>
-
     <div class="controls">
       <button id="play-button" type="button" disabled>Play</button>
       <input id="progress" type="range" min="0" max="1000" value="0"
@@ -114,27 +106,16 @@
   </main>
 
   <script>
-    const savedPath = sessionStorage.getItem("youclipPath");
-
-    if (savedPath) {
-      sessionStorage.removeItem("youclipPath");
-      history.replaceState(null, "", savedPath);
-    }
     const params = new URLSearchParams(location.search);
 
-    // Get video ID from /watch/VIDEO_ID
-    const pathParts = location.pathname.split("/").filter(Boolean);
-    const videoId = pathParts[0] === "watch" ? pathParts[1] : null;
+const videoId = params.get("v");
+const start = Number(params.get("t"));
+const end = Number(params.get("end"));
 
-    // Get clip times from URL parameters
-    const start = Number(params.get("t"));
-    const end = Number(params.get("end"));
-
-    const duration = end - start;
+const duration = end - start;
 
     const errorEl = document.getElementById("error");
     const rangeEl = document.getElementById("clip-range");
-    const titleEl = document.getElementById("clip-title");
     const originalLink = document.getElementById("original-link");
     const playButton = document.getElementById("play-button");
     const progress = document.getElementById("progress");
