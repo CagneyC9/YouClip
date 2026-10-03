@@ -1,7 +1,7 @@
 console.log("YouTube Clipper loaded!");
 
 const CLIP_VIEWER_BASE_URL =
-    "https://cagneyc9.github.io/Youtube_Clip/";
+    "https://youclip.stream/";
 
 if (window.__youtubeClipperInitialized) {
     console.log("YouTube Clipper already initialized.");
