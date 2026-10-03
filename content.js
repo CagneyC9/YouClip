@@ -68,83 +68,7 @@ if (window.__youtubeClipperInitialized) {
     const clipActionButton = document.createElement("button");
     clipActionButton.id = "youtube-clipper-action";
     clipActionButton.type = "button";
-    clipActionButton.setAttribute("aria-label", "Create a clip");
-
-(() => {
-  let tooltip = null;
-  let timer = null;
-
-  const hide = () => {
-    clearTimeout(timer);
-    tooltip?.remove();
-    tooltip = null;
-    clipActionButton.removeAttribute("aria-describedby");
-  };
-
-  const show = () => {
-    hide();
-
-    timer = setTimeout(() => {
-      if (!document.body || !clipActionButton.isConnected) return;
-
-      tooltip = document.createElement("div");
-      tooltip.id = "youtube-clipper-tooltip";
-      tooltip.textContent = "Clip";
-      tooltip.setAttribute("role", "tooltip");
-
-      tooltip.style.cssText = `
-        position: fixed;
-        z-index: 2147483647;
-        padding: 10px 8px;
-        border-radius: 3px;
-        background: rgba(97, 97, 97, 0.95);
-        color: white;
-        font: 12px Roboto, Arial, sans-serif;
-        line-height: 14px;
-        white-space: nowrap;
-        pointer-events: none;
-        visibility: hidden;
-      `;
-
-      document.body.appendChild(tooltip);
-
-      const button = clipActionButton.getBoundingClientRect();
-      const box = tooltip.getBoundingClientRect();
-      const gap = 8;
-      const margin = 8;
-
-      const left = Math.max(
-        margin,
-        Math.min(
-          button.left + (button.width - box.width) / 2,
-          window.innerWidth - box.width - margin
-        )
-      );
-
-      let top = button.bottom + gap;
-
-      // Move above when there isn't room below.
-      if (top + box.height > window.innerHeight - margin) {
-        top = button.top - box.height - gap;
-      }
-
-      tooltip.style.left = `${left}px`;
-      tooltip.style.top = `${Math.max(margin, top)}px`;
-      tooltip.style.visibility = "visible";
-
-      clipActionButton.setAttribute("aria-describedby", tooltip.id);
-    }, 500);
-  };
-
-  clipActionButton.addEventListener("mouseenter", show);
-  clipActionButton.addEventListener("mouseleave", hide);
-  clipActionButton.addEventListener("focus", show);
-  clipActionButton.addEventListener("blur", hide);
-  clipActionButton.addEventListener("pointerdown", hide);
-
-  document.addEventListener("scroll", hide, true);
-  window.addEventListener("resize", hide);
-})();
+    clipActionButton.title = "Create a clip";
 
     const clipActionContainer = document.createElement("div");
     clipActionContainer.className = "youtube-clipper-action-container";
@@ -166,7 +90,7 @@ if (window.__youtubeClipperInitialized) {
     // Popup ("Create clip" modal)
     // -----------------------------
 
-   
+
 
     let clipTitle = "";
     let videoDuration = 0;
@@ -191,6 +115,72 @@ if (window.__youtubeClipperInitialized) {
     modalHeader.appendChild(modalHeaderTitle);
     modalHeader.appendChild(closeButton);
 
+    // Drag the panel by its header.
+(() => {
+    let drag = null;
+
+    modalHeader.style.cursor = "grab";
+    modalHeader.style.touchAction = "none";
+    modalHeader.style.userSelect = "none";
+
+    modalHeader.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || closeButton.contains(event.target)) return;
+
+        const rect = clipper.getBoundingClientRect();
+
+        drag = {
+            pointerId: event.pointerId,
+            offsetX: event.clientX - rect.left,
+            offsetY: event.clientY - rect.top,
+        };
+
+        Object.assign(clipper.style, {
+            position: "fixed",
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+            right: "auto",
+            bottom: "auto",
+            transform: "none",
+            margin: "0",
+        });
+
+        modalHeader.setPointerCapture(event.pointerId);
+        modalHeader.style.cursor = "grabbing";
+
+        event.preventDefault();
+        event.stopPropagation();
+    });
+
+    modalHeader.addEventListener("pointermove", (event) => {
+        if (!drag || event.pointerId !== drag.pointerId) return;
+
+        const rect = clipper.getBoundingClientRect();
+        const maxLeft = Math.max(0, window.innerWidth - rect.width);
+        const maxTop = Math.max(0, window.innerHeight - rect.height);
+
+        clipper.style.left = `${Math.max(
+            0,
+            Math.min(event.clientX - drag.offsetX, maxLeft)
+        )}px`;
+
+        clipper.style.top = `${Math.max(
+            0,
+            Math.min(event.clientY - drag.offsetY, maxTop)
+        )}px`;
+
+        event.stopPropagation();
+    });
+
+    const finishDrag = () => {
+        drag = null;
+        modalHeader.style.cursor = "grab";
+    };
+
+    modalHeader.addEventListener("pointerup", finishDrag);
+    modalHeader.addEventListener("pointercancel", finishDrag);
+    modalHeader.addEventListener("lostpointercapture", finishDrag);
+})();
+
     const titleInput = document.createElement("input");
     titleInput.type = "text";
     titleInput.className = "youtube-clipper-title-input";
@@ -212,9 +202,30 @@ if (window.__youtubeClipperInitialized) {
     endTimeInput.type = "text";
     endTimeInput.className = "youtube-clipper-time-input";
 
-    timeRow.appendChild(startTimeInput);
-    timeRow.appendChild(timeSeparator);
-    timeRow.appendChild(endTimeInput);
+startTimeInput.id = "youtube-clipper-start-time";
+endTimeInput.id = "youtube-clipper-end-time";
+
+const startLabel = document.createElement("label");
+startLabel.textContent = "Start";
+startLabel.htmlFor = startTimeInput.id;
+
+const endLabel = document.createElement("label");
+endLabel.textContent = "End";
+endLabel.htmlFor = endTimeInput.id;
+
+for (const label of [startLabel, endLabel]) {
+    label.style.fontSize = "12px";
+    label.style.color = "#aaa";
+    label.style.flexShrink = "0";
+}
+
+timeRow.append(
+    startLabel,
+    startTimeInput,
+    timeSeparator,
+    endTimeInput,
+    endLabel
+);
 
     const track = document.createElement("div");
     track.className = "youtube-clipper-track";
@@ -237,25 +248,12 @@ if (window.__youtubeClipperInitialized) {
 
     track.appendChild(playheadMarker);
 
-    const timelineControls = document.createElement("div");
-    timelineControls.style.cssText =
-        "display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0 2px;color:#aaa;font-size:11px;font-variant-numeric:tabular-nums";
-
-    const timelineStartLabel = document.createElement("span");
-    const timelineMiddleLabel = document.createElement("span");
-    const timelineEndLabel = document.createElement("span");
-
-    timelineControls.append(
-        timelineStartLabel,
-        timelineMiddleLabel,
-        timelineEndLabel
-    );
-
     const durationLabel = document.createElement("div");
     durationLabel.className = "youtube-clipper-duration";
 
     const modalFooter = document.createElement("div");
     modalFooter.className = "youtube-clipper-modal-footer";
+
 
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
@@ -272,13 +270,13 @@ if (window.__youtubeClipperInitialized) {
     modalFooterActions.appendChild(cancelButton);
     modalFooterActions.appendChild(shareButton);
 
+   
     modalFooter.appendChild(modalFooterActions);
 
     clipper.appendChild(modalHeader);
     clipper.appendChild(titleInput);
     clipper.appendChild(timeRow);
     clipper.appendChild(track);
-    clipper.appendChild(timelineControls);
     clipper.appendChild(durationLabel);
     clipper.appendChild(modalFooter);
 
@@ -342,15 +340,16 @@ if (window.__youtubeClipperInitialized) {
     };
 
     const clampRange = () => {
-  if (startTime === null || endTime === null || !videoDuration) {
-    return;
-  }
+    if (startTime === null || endTime === null || !videoDuration) {
+        return;
+    }
 
-  const minimumLength = Math.min(0.5, videoDuration);
+    const minimumLength = Math.min(0.5, videoDuration);
 
-  startTime = clamp(startTime, 0, videoDuration - minimumLength);
-  endTime = clamp(endTime, startTime + minimumLength, videoDuration);
+    startTime = clamp(startTime, 0, videoDuration - minimumLength);
+    endTime = clamp(endTime, startTime + minimumLength, videoDuration);
 };
+
     const updateInputs = () => {
         startTimeInput.value =
             startTime === null ? "" : formatTime(startTime);
@@ -366,7 +365,7 @@ if (window.__youtubeClipperInitialized) {
         }
 
         durationLabel.textContent =
-            `${(endTime - startTime).toFixed(1)} seconds`;
+    `Duration: ${formatTime(endTime - startTime)}`;
     };
 
     const updateTrackVisuals = () => {
@@ -403,27 +402,26 @@ if (window.__youtubeClipperInitialized) {
         playheadMarker.style.display = isVisible ? "block" : "none";
         playheadMarker.style.left = `${ratio * 100}%`;
     };
-    const updateTimelineLabels = () => {
-        timelineStartLabel.textContent = formatTime(trackWindowStart);
-        timelineMiddleLabel.textContent =
-            formatTime(trackWindowStart + trackWindowSize / 2);
-        timelineEndLabel.textContent =
-            formatTime(Math.min(videoDuration, trackWindowStart + trackWindowSize));
 
-    };
     const refreshUi = () => {
         updateInputs();
         updateTrackVisuals();
         updateDurationLabel();
         updatePlayheadMarker();
+
         shareButton.disabled = !hasValidRange();
-        updateTimelineLabels();
     };
 
     // -----------------------------
     // Loop preview while the modal is open
     // -----------------------------
 
+    const stopLoopPreview = () => {
+        if (loopIntervalId) {
+            clearInterval(loopIntervalId);
+            loopIntervalId = null;
+        }
+    };
 
     let playheadIntervalId = null;
 
@@ -439,14 +437,6 @@ if (window.__youtubeClipperInitialized) {
         playheadIntervalId = setInterval(updatePlayheadMarker, 200);
     };
 
-    const stopLoopPreview = () => {
-        if (loopIntervalId !== null) {
-            clearInterval(loopIntervalId);
-            loopIntervalId = null;
-        }
-
-    };
-
     const startLoopPreview = () => {
         const video = getVideo();
 
@@ -455,16 +445,15 @@ if (window.__youtubeClipperInitialized) {
         }
 
         stopLoopPreview();
+
         video.currentTime = startTime;
-        video.play().catch(() => stopLoopPreview());
+        video.play();
+
         loopIntervalId = setInterval(() => {
-            if (!clipper.classList.contains("youtube-clipper-open")) {
-                stopLoopPreview();
-            } else if (video.currentTime >= endTime) {
-                video.pause();
-                stopLoopPreview();
+            if (video.currentTime >= endTime) {
+                video.currentTime = startTime;
             }
-        }, 100);
+        }, 200);
     };
 
     // -----------------------------
@@ -477,6 +466,10 @@ if (window.__youtubeClipperInitialized) {
         clipTitle = "";
 
         titleInput.value = "";
+
+        stopLoopPreview();
+        shareButton.textContent = "Share clip";
+
         refreshUi();
 
         console.log("Clip times reset.");
@@ -570,7 +563,7 @@ if (window.__youtubeClipperInitialized) {
         clampRange();
         ensureTrackWindowContains(startTime);
         refreshUi();
-        startLoopPreview();
+        
         autoCopyClipLink();
     });
 
@@ -586,7 +579,7 @@ if (window.__youtubeClipperInitialized) {
         clampRange();
         ensureTrackWindowContains(endTime);
         refreshUi();
-        startLoopPreview();
+        
         autoCopyClipLink();
     });
 
@@ -604,7 +597,6 @@ if (window.__youtubeClipperInitialized) {
     };
 
     const onDragMove = (event) => {
-        ignoreClipperSeekUntil = performance.now() + 500;
         if (!draggingHandle || !videoDuration) {
             return;
         }
@@ -630,13 +622,15 @@ if (window.__youtubeClipperInitialized) {
         }
 
         if (draggingHandle === "start") {
-            startTime = clamp(time, 0, endTime - 0.5);
+            startTime = clamp(time, 0, endTime - 0.5
+            );
 
             if (video) {
                 video.currentTime = startTime;
             }
         } else {
-            endTime = clamp(time, startTime + 0.5, videoDuration);
+               endTime = clamp(time, startTime + 0.5, videoDuration
+            );
 
             if (video) {
                 video.currentTime = endTime;
@@ -652,7 +646,7 @@ if (window.__youtubeClipperInitialized) {
         document.removeEventListener("pointermove", onDragMove);
         document.removeEventListener("pointerup", onDragEnd);
 
-        startLoopPreview();
+        
         autoCopyClipLink();
     };
 
@@ -682,6 +676,10 @@ if (window.__youtubeClipperInitialized) {
     });
 
     // -----------------------------
+    // Zoom to playhead
+    // -----------------------------
+
+    // -----------------------------
     // Share clip
     // -----------------------------
 
@@ -696,24 +694,7 @@ if (window.__youtubeClipperInitialized) {
     // -----------------------------
     // Open / close popup
     // -----------------------------
-let activeVideo = null;
-let ignoreClipperSeekUntil = 0;
 
-const onVideoSeeked = () => {
-  if (
-    !clipper.classList.contains("youtube-clipper-open") ||
-    draggingHandle ||
-    performance.now() < ignoreClipperSeekUntil
-  ) {
-    return;
-  }
-
-  const video = getVideo();
-  if (!video || !videoDuration) return;
-
-  centerTrackWindow(video.currentTime);
-  refreshUi();
-};
     const openModal = () => {
         const video = getVideo();
 
@@ -721,11 +702,7 @@ const onVideoSeeked = () => {
             console.log("No video element found.");
             return;
         }
-        if (activeVideo !== video) {
-  activeVideo?.removeEventListener("seeked", onVideoSeeked);
-  activeVideo = video;
-  video.addEventListener("seeked", onVideoSeeked);
-}
+
         videoDuration = video.duration || 0;
 
         if (startTime === null) {
@@ -745,13 +722,11 @@ const onVideoSeeked = () => {
 
         clipper.classList.add("youtube-clipper-open");
 
-        startLoopPreview();
+        
         startPlayheadTracking();
     };
 
     const closeModal = () => {
-        activeVideo?.removeEventListener("seeked", onVideoSeeked);
-        activeVideo = null;
         clipper.classList.remove("youtube-clipper-open");
         stopLoopPreview();
         stopPlayheadTracking();
@@ -1003,7 +978,7 @@ document.addEventListener("keydown", (event) => {
         clampRange();
         ensureTrackWindowContains(startTime);
         refreshUi();
-        startLoopPreview();
+        
         autoCopyClipLink();
     } else if (event.key.toLowerCase() === "e") {
         if (!clipper.classList.contains("youtube-clipper-open")) {
@@ -1014,7 +989,7 @@ document.addEventListener("keydown", (event) => {
         clampRange();
         ensureTrackWindowContains(endTime);
         refreshUi();
-        startLoopPreview();
+        
         autoCopyClipLink();
     }
 });
