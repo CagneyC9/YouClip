@@ -12,7 +12,7 @@ if (window.__youtubeClipperInitialized) {
     let endTime = null;
     let currentVideoId = null;
 
-    // -----------------------------
+     // -----------------------------
     // Helpers
     // -----------------------------
 
@@ -27,39 +27,41 @@ if (window.__youtubeClipperInitialized) {
         return window.location.pathname === "/watch" && !!getVideoId();
     };
 
-   const formatTime = (seconds) => {
-    const totalTenths = Math.round(seconds * 10);
-    const hours = Math.floor(totalTenths / 36000);
-    const minutes = Math.floor((totalTenths % 36000) / 600);
-    const secs = Math.floor((totalTenths % 600) / 10);
-    const tenths = totalTenths % 10;
-    const secondsText = `${String(secs).padStart(2, "0")}.${tenths}`;
+    const formatTime = (seconds) => {
+        const totalTenths = Math.round(seconds * 10);
+        const hours = Math.floor(totalTenths / 36000);
+        const minutes = Math.floor((totalTenths % 36000) / 600);
+        const secs = Math.floor((totalTenths % 600) / 10);
+        const tenths = totalTenths % 10;
+        const secondsText = `${String(secs).padStart(2, "0")}.${tenths}`;
 
-    if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(2, "0")}:${secondsText}`;
-    }
+        if (hours > 0) {
+            return `${hours}:${String(minutes).padStart(2, "0")}:${secondsText}`;
+        }
 
-    return `${minutes}:${secondsText}`;
-};
+        return `${minutes}:${secondsText}`;
+    };
 
     const hasValidRange = () =>
         startTime !== null && endTime !== null && endTime > startTime;
 
     const buildClipUrl = () => {
-        const videoId = getVideoId();
+    const videoId = getVideoId();
 
-        if (!videoId) {
-            return null;
-        }
+    if (!videoId) {
+        return null;
+    }
 
-        const clipUrl = new URL(CLIP_VIEWER_BASE_URL);
+    const clipUrl = new URL(
+        `watch/${encodeURIComponent(videoId)}`,
+        CLIP_VIEWER_BASE_URL
+    );
 
-        clipUrl.searchParams.set("v", videoId);
-        clipUrl.searchParams.set("s", String(startTime));
-        clipUrl.searchParams.set("e", String(endTime));
+    clipUrl.searchParams.set("t", startTime.toFixed(1));
+    clipUrl.searchParams.set("end", endTime.toFixed(1));
 
-        return clipUrl;
-    };
+    return clipUrl;
+};
 
     // -----------------------------
     // Main Clip button
@@ -202,30 +204,30 @@ if (window.__youtubeClipperInitialized) {
     endTimeInput.type = "text";
     endTimeInput.className = "youtube-clipper-time-input";
 
-startTimeInput.id = "youtube-clipper-start-time";
-endTimeInput.id = "youtube-clipper-end-time";
+    startTimeInput.id = "youtube-clipper-start-time";
+    endTimeInput.id = "youtube-clipper-end-time";
 
-const startLabel = document.createElement("label");
-startLabel.textContent = "Start";
-startLabel.htmlFor = startTimeInput.id;
+    const startLabel = document.createElement("label");
+    startLabel.textContent = "Start";
+    startLabel.htmlFor = startTimeInput.id;
 
-const endLabel = document.createElement("label");
-endLabel.textContent = "End";
-endLabel.htmlFor = endTimeInput.id;
+    const endLabel = document.createElement("label");
+    endLabel.textContent = "End";
+    endLabel.htmlFor = endTimeInput.id;
 
-for (const label of [startLabel, endLabel]) {
-    label.style.fontSize = "12px";
-    label.style.color = "#aaa";
-    label.style.flexShrink = "0";
-}
+    for (const label of [startLabel, endLabel]) {
+        label.style.fontSize = "12px";
+        label.style.color = "#aaa";
+        label.style.flexShrink = "0";
+    }
 
-timeRow.append(
-    startLabel,
-    startTimeInput,
-    timeSeparator,
-    endTimeInput,
-    endLabel
-);
+    timeRow.append(
+        startLabel,
+        startTimeInput,
+        timeSeparator,
+        endTimeInput,
+        endLabel
+    );
 
     const track = document.createElement("div");
     track.className = "youtube-clipper-track";
@@ -270,7 +272,7 @@ timeRow.append(
     modalFooterActions.appendChild(cancelButton);
     modalFooterActions.appendChild(shareButton);
 
-   
+
     modalFooter.appendChild(modalFooterActions);
 
     clipper.appendChild(modalHeader);
@@ -340,15 +342,15 @@ timeRow.append(
     };
 
     const clampRange = () => {
-    if (startTime === null || endTime === null || !videoDuration) {
-        return;
-    }
+        if (startTime === null || endTime === null || !videoDuration) {
+            return;
+        }
 
-    const minimumLength = Math.min(0.5, videoDuration);
+        const minimumLength = Math.min(0.5, videoDuration);
 
-    startTime = clamp(startTime, 0, videoDuration - minimumLength);
-    endTime = clamp(endTime, startTime + minimumLength, videoDuration);
-};
+        startTime = clamp(startTime, 0, videoDuration - minimumLength);
+        endTime = clamp(endTime, startTime + minimumLength, videoDuration);
+    };
 
     const updateInputs = () => {
         startTimeInput.value =
@@ -364,8 +366,8 @@ timeRow.append(
             return;
         }
 
-        durationLabel.textContent =
-    `Duration: ${formatTime(endTime - startTime)}`;
+            durationLabel.textContent =
+                `Duration: ${formatTime(endTime - startTime)}`;
     };
 
     const updateTrackVisuals = () => {
@@ -519,9 +521,6 @@ timeRow.append(
             return;
         }
 
-        if (clipTitle.trim()) {
-            clipUrl.searchParams.set("t", clipTitle.trim());
-        }
 
         try {
             await copyToClipboard(clipUrl.toString());
@@ -563,7 +562,7 @@ timeRow.append(
         clampRange();
         ensureTrackWindowContains(startTime);
         refreshUi();
-        
+
         autoCopyClipLink();
     });
 
@@ -579,7 +578,7 @@ timeRow.append(
         clampRange();
         ensureTrackWindowContains(endTime);
         refreshUi();
-        
+
         autoCopyClipLink();
     });
 
@@ -622,14 +621,20 @@ timeRow.append(
         }
 
         if (draggingHandle === "start") {
-            startTime = clamp(time, 0, endTime - 0.5
+            startTime = clamp(
+                time,
+                0,
+                endTime - 0.5
             );
 
             if (video) {
                 video.currentTime = startTime;
             }
         } else {
-               endTime = clamp(time, startTime + 0.5, videoDuration
+            endTime = clamp(
+                time,
+                startTime + 0.5,
+                videoDuration
             );
 
             if (video) {
@@ -646,7 +651,7 @@ timeRow.append(
         document.removeEventListener("pointermove", onDragMove);
         document.removeEventListener("pointerup", onDragEnd);
 
-        
+
         autoCopyClipLink();
     };
 
@@ -722,7 +727,7 @@ timeRow.append(
 
         clipper.classList.add("youtube-clipper-open");
 
-        
+
         startPlayheadTracking();
     };
 
@@ -825,172 +830,172 @@ timeRow.append(
         actions.appendChild(clipActionContainer);
     };
 
-   // -----------------------------
-// Navigation handling
-// -----------------------------
+    // -----------------------------
+    // Navigation handling
+    // -----------------------------
 
-let actionsObserver = null;
-let actionsCheckScheduled = false;
-let actionsCheckIntervalId = null;
+    let actionsObserver = null;
+    let actionsCheckScheduled = false;
+    let actionsCheckIntervalId = null;
 
-// Coalesce YouTube's frequent DOM mutations into a single check
-// per animation frame.
-const scheduleInsertClipButton = () => {
-    if (actionsCheckScheduled) {
-        return;
-    }
+    // Coalesce YouTube's frequent DOM mutations into a single check
+    // per animation frame.
+    const scheduleInsertClipButton = () => {
+        if (actionsCheckScheduled) {
+            return;
+        }
 
-    actionsCheckScheduled = true;
+        actionsCheckScheduled = true;
 
-    requestAnimationFrame(() => {
-        actionsCheckScheduled = false;
-        insertClipButton();
-    });
-};
-
-/*
- * YouTube is a SPA and progressively renders/replaces parts of the
- * watch page. Keep this observer alive for the lifetime of the
- * content script so the Clip button can be inserted whenever the
- * action bar becomes available.
- */
-const watchForActions = () => {
-    insertClipButton();
-
-    if (!actionsObserver) {
-        actionsObserver = new MutationObserver(scheduleInsertClipButton);
-
-        actionsObserver.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
-    }
-
-    // Safety net in case YouTube renders/replaces the action bar
-    // without a mutation we care about.
-    if (!actionsCheckIntervalId) {
-        actionsCheckIntervalId = setInterval(() => {
+        requestAnimationFrame(() => {
+            actionsCheckScheduled = false;
             insertClipButton();
-        }, 1500);
+        });
+    };
+
+    /*
+     * YouTube is a SPA and progressively renders/replaces parts of the
+     * watch page. Keep this observer alive for the lifetime of the
+     * content script so the Clip button can be inserted whenever the
+     * action bar becomes available.
+     */
+    const watchForActions = () => {
+        insertClipButton();
+
+        if (!actionsObserver) {
+            actionsObserver = new MutationObserver(scheduleInsertClipButton);
+
+            actionsObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+        }
+
+        // Safety net in case YouTube renders/replaces the action bar
+        // without a mutation we care about.
+        if (!actionsCheckIntervalId) {
+            actionsCheckIntervalId = setInterval(() => {
+                insertClipButton();
+            }, 1500);
+        }
+    };
+
+    const handleNavigation = () => {
+        const newVideoId = getVideoId();
+
+        // If we're not on a video page, remove our UI,
+        // but DO NOT stop the observer.
+        if (!isWatchPage()) {
+            clipActionContainer.remove();
+            closeModal();
+
+            currentVideoId = null;
+            resetClip();
+
+            return;
+        }
+
+        // Reset clip state when navigating to a different video.
+        if (currentVideoId !== newVideoId) {
+            currentVideoId = newVideoId;
+
+            resetClip();
+            closeModal();
+
+            console.log("Current video:", currentVideoId);
+        }
+
+        // YouTube may not have rendered the action bar yet.
+        // The observer will keep trying, but also schedule a check now.
+        scheduleInsertClipButton();
+    };
+
+    // -----------------------------
+    // Add popup to document
+    // -----------------------------
+
+    const initializeClipper = () => {
+        if (!document.body) {
+            return;
+        }
+
+        if (!document.body.contains(clipper)) {
+            document.body.appendChild(clipper);
+        }
+
+        // Start watching YouTube's DOM once and leave the watcher active.
+        watchForActions();
+
+        // Handle whatever page we're currently on.
+        handleNavigation();
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeClipper,
+            { once: true }
+        );
+    } else {
+        initializeClipper();
     }
-};
 
-const handleNavigation = () => {
-    const newVideoId = getVideoId();
-
-    // If we're not on a video page, remove our UI,
-    // but DO NOT stop the observer.
-    if (!isWatchPage()) {
-        clipActionContainer.remove();
-        closeModal();
-
-        currentVideoId = null;
-        resetClip();
-
-        return;
-    }
-
-    // Reset clip state when navigating to a different video.
-    if (currentVideoId !== newVideoId) {
-        currentVideoId = newVideoId;
-
-        resetClip();
-        closeModal();
-
-        console.log("Current video:", currentVideoId);
-    }
-
-    // YouTube may not have rendered the action bar yet.
-    // The observer will keep trying, but also schedule a check now.
-    scheduleInsertClipButton();
-};
-
-// -----------------------------
-// Add popup to document
-// -----------------------------
-
-const initializeClipper = () => {
-    if (!document.body) {
-        return;
-    }
-
-    if (!document.body.contains(clipper)) {
-        document.body.appendChild(clipper);
-    }
-
-    // Start watching YouTube's DOM once and leave the watcher active.
-    watchForActions();
-
-    // Handle whatever page we're currently on.
-    handleNavigation();
-};
-
-if (document.readyState === "loading") {
+    // YouTube SPA navigation
     document.addEventListener(
-        "DOMContentLoaded",
-        initializeClipper,
-        { once: true }
+        "yt-navigate-finish",
+        handleNavigation
     );
-} else {
-    initializeClipper();
-}
 
-// YouTube SPA navigation
-document.addEventListener(
-    "yt-navigate-finish",
-    handleNavigation
-);
+    // -----------------------------
+    // Keyboard shortcuts
+    // -----------------------------
 
-// -----------------------------
-// Keyboard shortcuts
-// -----------------------------
+    document.addEventListener("keydown", (event) => {
+        const target = event.target;
 
-document.addEventListener("keydown", (event) => {
-    const target = event.target;
-
-    if (
-        target instanceof HTMLElement &&
-        (
-            target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.isContentEditable
-        )
-    ) {
-        return;
-    }
-
-    if (!isWatchPage()) {
-        return;
-    }
-
-    const video = getVideo();
-
-    if (!video) {
-        return;
-    }
-
-    if (event.key.toLowerCase() === "s") {
-        if (!clipper.classList.contains("youtube-clipper-open")) {
-            openModal();
+        if (
+            target instanceof HTMLElement &&
+            (
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.isContentEditable
+            )
+        ) {
+            return;
         }
 
-        startTime = video.currentTime;
-        clampRange();
-        ensureTrackWindowContains(startTime);
-        refreshUi();
-        
-        autoCopyClipLink();
-    } else if (event.key.toLowerCase() === "e") {
-        if (!clipper.classList.contains("youtube-clipper-open")) {
-            openModal();
+        if (!isWatchPage()) {
+            return;
         }
 
-        endTime = video.currentTime;
-        clampRange();
-        ensureTrackWindowContains(endTime);
-        refreshUi();
-        
-        autoCopyClipLink();
-    }
-});
+        const video = getVideo();
+
+        if (!video) {
+            return;
+        }
+
+        if (event.key.toLowerCase() === "s") {
+            if (!clipper.classList.contains("youtube-clipper-open")) {
+                openModal();
+            }
+
+            startTime = video.currentTime;
+            clampRange();
+            ensureTrackWindowContains(startTime);
+            refreshUi();
+
+            autoCopyClipLink();
+        } else if (event.key.toLowerCase() === "e") {
+            if (!clipper.classList.contains("youtube-clipper-open")) {
+                openModal();
+            }
+
+            endTime = video.currentTime;
+            clampRange();
+            ensureTrackWindowContains(endTime);
+            refreshUi();
+
+            autoCopyClipLink();
+        }
+    });
 }

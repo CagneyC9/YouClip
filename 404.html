@@ -1,29 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>YouClip</title>
+  <meta charset="UTF-8">
+  <script>
+    const path = location.pathname;
 
-    <script>
-        const path = window.location.pathname;
-
-        if (path.startsWith("/watch/")) {
-            const videoId = path.substring("/watch/".length);
-
-            if (videoId) {
-                const params = window.location.search;
-
-                window.location.replace(
-                    "/watch/?v=" +
-                    encodeURIComponent(videoId) +
-                    (params ? "&" + params.substring(1) : "")
-                );
-            }
-        }
-    </script>
+    if (path.startsWith("/watch/")) {
+      sessionStorage.setItem("youclipPath", path + location.search);
+      location.replace("/watch/");
+    }
+  </script>
 </head>
-
 <body>
-    <p>Page not found.</p>
+  Page not found.
 </body>
 </html>

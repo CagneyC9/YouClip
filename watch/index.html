@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YouTube Clip</title>
+  <link rel="icon" type="image/png" href="/icon.png">
+  <title>YouClip</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -113,11 +114,22 @@
   </main>
 
   <script>
+    const savedPath = sessionStorage.getItem("youclipPath");
+
+    if (savedPath) {
+      sessionStorage.removeItem("youclipPath");
+      history.replaceState(null, "", savedPath);
+    }
     const params = new URLSearchParams(location.search);
-    const videoId = params.get("v");
-    const start = Number(params.get("s"));
-    const end = Number(params.get("e"));
-    const clipTitle = params.get("t");
+
+    // Get video ID from /watch/VIDEO_ID
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    const videoId = pathParts[0] === "watch" ? pathParts[1] : null;
+
+    // Get clip times from URL parameters
+    const start = Number(params.get("t"));
+    const end = Number(params.get("end"));
+
     const duration = end - start;
 
     const errorEl = document.getElementById("error");
@@ -149,12 +161,6 @@
     ) {
       errorEl.style.display = "block";
       throw new Error("Invalid clip parameters");
-    }
-
-    if (clipTitle) {
-      titleEl.textContent = clipTitle;
-      titleEl.hidden = false;
-      document.title = `${clipTitle} | YouTube Clip`;
     }
 
     rangeEl.textContent =
