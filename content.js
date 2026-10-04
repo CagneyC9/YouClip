@@ -12,10 +12,9 @@ if (window.__youtubeClipperInitialized) {
     let endTime = null;
     let currentVideoId = null;
 
-     // -----------------------------
-    // Helpers
-    // -----------------------------
+    // Helper constants
 
+    // Gets video element and ID
     const getVideo = () => document.querySelector("video");
 
     const getVideoId = () => {
@@ -23,10 +22,12 @@ if (window.__youtubeClipperInitialized) {
         return params.get("v");
     };
 
+    // Checks if user is on watch page
     const isWatchPage = () => {
         return window.location.pathname === "/watch" && !!getVideoId();
     };
 
+    // Formats display time
     const formatTime = (seconds) => {
         const totalTenths = Math.round(seconds * 10);
         const hours = Math.floor(totalTenths / 36000);
@@ -42,6 +43,7 @@ if (window.__youtubeClipperInitialized) {
         return `${minutes}:${secondsText}`;
     };
 
+    // Checks if clip range is ok
     const hasValidRange = () =>
         startTime !== null && endTime !== null && endTime > startTime;
 
@@ -61,9 +63,9 @@ if (window.__youtubeClipperInitialized) {
     return clipUrl;
 };
 
-    // -----------------------------
+    
     // Main Clip button
-    // -----------------------------
+   
 
     const clipActionButton = document.createElement("button");
     clipActionButton.id = "youtube-clipper-action";
@@ -74,6 +76,7 @@ if (window.__youtubeClipperInitialized) {
     clipActionContainer.className = "youtube-clipper-action-container";
     clipActionContainer.appendChild(clipActionButton);
 
+    // Icon for the button
     const scissorsIcon = document.createElement("img");
     scissorsIcon.src = chrome.runtime.getURL("scissors.svg");
     scissorsIcon.alt = "";
@@ -86,9 +89,8 @@ if (window.__youtubeClipperInitialized) {
     clipActionButton.appendChild(scissorsIcon);
     clipActionButton.appendChild(clipButtonText);
 
-    // -----------------------------
+   
     // Popup ("Create clip" modal)
-    // -----------------------------
 
 
 
@@ -280,9 +282,8 @@ if (window.__youtubeClipperInitialized) {
     clipper.appendChild(durationLabel);
     clipper.appendChild(modalFooter);
 
-    // -----------------------------
+    
     // Time <-> slider syncing
-    // -----------------------------
 
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -412,10 +413,9 @@ if (window.__youtubeClipperInitialized) {
         shareButton.disabled = !hasValidRange();
     };
 
-    // -----------------------------
-    // Loop preview while the modal is open
-    // -----------------------------
 
+    // Loop preview while the modal is open
+  
     const stopLoopPreview = () => {
         if (loopIntervalId) {
             clearInterval(loopIntervalId);
@@ -456,9 +456,9 @@ if (window.__youtubeClipperInitialized) {
         }, 200);
     };
 
-    // -----------------------------
-    // Reset clip
-    // -----------------------------
+   
+    // Resets the clip
+
 
     const resetClip = () => {
         startTime = null;
@@ -475,9 +475,9 @@ if (window.__youtubeClipperInitialized) {
         console.log("Clip times reset.");
     };
 
-    // -----------------------------
+  
     // Clipboard helper
-    // -----------------------------
+  
 
     const copyToClipboard = async (text) => {
         if (navigator.clipboard && window.isSecureContext) {
@@ -503,9 +503,9 @@ if (window.__youtubeClipperInitialized) {
         }
     };
 
-    // -----------------------------
-    // Auto-copy whenever the range becomes valid
-    // -----------------------------
+   
+    // Auto-copy clip link when valid
+   
 
     const autoCopyClipLink = async () => {
         if (!hasValidRange()) {
@@ -536,17 +536,16 @@ if (window.__youtubeClipperInitialized) {
         }
     };
 
-    // -----------------------------
-    // Title input
-    // -----------------------------
+ 
+    // Lets you title the clip
 
     titleInput.addEventListener("input", () => {
         clipTitle = titleInput.value;
     });
 
-    // -----------------------------
-    // Manual time entry
-    // -----------------------------
+   
+    // Lets you enter times manually
+   
 
     startTimeInput.addEventListener("change", () => {
         const parsed = parseTimeInput(startTimeInput.value);
@@ -580,9 +579,8 @@ if (window.__youtubeClipperInitialized) {
         autoCopyClipLink();
     });
 
-    // -----------------------------
-    // Dragging the slider handles
-    // -----------------------------
+    
+    // For dragging slider element
 
     const beginDrag = (which) => (event) => {
         event.preventDefault();
@@ -605,6 +603,7 @@ if (window.__youtubeClipperInitialized) {
 
         // Re-center the window when dragging near its edges so users
         // can keep scrubbing past what's currently visible.
+
         const edgeThreshold = trackWindowSize * 0.1;
 
         if (
@@ -657,6 +656,7 @@ if (window.__youtubeClipperInitialized) {
     endHandle.addEventListener("pointerdown", beginDrag("end"));
 
     // Clicking the track jumps the nearest handle to that spot.
+
     track.addEventListener("pointerdown", (event) => {
         if (
             event.target === startHandle ||
@@ -678,13 +678,10 @@ if (window.__youtubeClipperInitialized) {
         onDragEnd();
     });
 
-    // -----------------------------
-    // Zoom to playhead
-    // -----------------------------
 
-    // -----------------------------
-    // Share clip
-    // -----------------------------
+  
+    // Sharing clip
+   
 
     shareButton.onclick = async () => {
         if (!hasValidRange()) {
@@ -694,9 +691,9 @@ if (window.__youtubeClipperInitialized) {
         await autoCopyClipLink();
     };
 
-    // -----------------------------
-    // Open / close popup
-    // -----------------------------
+   
+    // Opening and closing the clipper modal
+
 
     const openModal = () => {
         const video = getVideo();
@@ -761,9 +758,9 @@ if (window.__youtubeClipperInitialized) {
         resetClip();
     };
 
-    // -----------------------------
-    // Insert button into YouTube
-    // -----------------------------
+   
+    // Inserts button into YouTube UI
+
 
     const insertClipButton = () => {
         if (!isWatchPage()) {
@@ -774,11 +771,8 @@ if (window.__youtubeClipperInitialized) {
             return;
         }
 
-        /*
-         * YouTube's action buttons live around #actions-inner.
-         * We first find the Share button so we can place Clip
-         * immediately after it.
-         */
+        // We find the share button in #actions-inner so we can place clip right after it
+ 
         const actions = document.querySelector(
             "ytd-watch-metadata #top-level-buttons-computed"
         );
@@ -805,10 +799,7 @@ if (window.__youtubeClipperInitialized) {
             );
         });
 
-        /*
-         * YouTube wraps its buttons in several elements.
-         * Insert beside Share inside YouTube's top-level action group.
-         */
+
         if (shareButton) {
             const shareContainer = shareButton.closest(
                 "ytd-button-renderer, ytd-toggle-button-renderer"
@@ -824,20 +815,20 @@ if (window.__youtubeClipperInitialized) {
             }
         }
 
-        // Fallback if YouTube changes the Share button structure.
+        // If Share not found, just append at end
         actions.appendChild(clipActionContainer);
     };
 
-    // -----------------------------
-    // Navigation handling
-    // -----------------------------
+
+    // Handling navigation changes
+
 
     let actionsObserver = null;
     let actionsCheckScheduled = false;
     let actionsCheckIntervalId = null;
 
-    // Coalesce YouTube's frequent DOM mutations into a single check
-    // per animation frame.
+    // Single check per frame
+
     const scheduleInsertClipButton = () => {
         if (actionsCheckScheduled) {
             return;
@@ -851,12 +842,10 @@ if (window.__youtubeClipperInitialized) {
         });
     };
 
-    /*
-     * YouTube is a SPA and progressively renders/replaces parts of the
-     * watch page. Keep this observer alive for the lifetime of the
-     * content script so the Clip button can be inserted whenever the
-     * action bar becomes available.
-     */
+ 
+
+    // Watch for action bar changes
+
     const watchForActions = () => {
         insertClipButton();
 
@@ -869,8 +858,8 @@ if (window.__youtubeClipperInitialized) {
             });
         }
 
-        // Safety net in case YouTube renders/replaces the action bar
-        // without a mutation we care about.
+        // Safety net in case observer misses changes
+
         if (!actionsCheckIntervalId) {
             actionsCheckIntervalId = setInterval(() => {
                 insertClipButton();
@@ -883,6 +872,7 @@ if (window.__youtubeClipperInitialized) {
 
         // If we're not on a video page, remove our UI,
         // but DO NOT stop the observer.
+
         if (!isWatchPage()) {
             clipActionContainer.remove();
             closeModal();
@@ -894,6 +884,7 @@ if (window.__youtubeClipperInitialized) {
         }
 
         // Reset clip state when navigating to a different video.
+
         if (currentVideoId !== newVideoId) {
             currentVideoId = newVideoId;
 
@@ -903,14 +894,13 @@ if (window.__youtubeClipperInitialized) {
             console.log("Current video:", currentVideoId);
         }
 
-        // YouTube may not have rendered the action bar yet.
-        // The observer will keep trying, but also schedule a check now.
+ 
+        // Constantly try to insert the button
+
         scheduleInsertClipButton();
     };
 
-    // -----------------------------
-    // Add popup to document
-    // -----------------------------
+    // Initialize clipper on page load
 
     const initializeClipper = () => {
         if (!document.body) {
@@ -921,10 +911,12 @@ if (window.__youtubeClipperInitialized) {
             document.body.appendChild(clipper);
         }
 
-        // Start watching YouTube's DOM once and leave the watcher active.
+        // Start watching for action bar changes
+
         watchForActions();
 
         // Handle whatever page we're currently on.
+
         handleNavigation();
     };
 
@@ -938,15 +930,14 @@ if (window.__youtubeClipperInitialized) {
         initializeClipper();
     }
 
-    // YouTube SPA navigation
+    // Youtube navigation
+
     document.addEventListener(
         "yt-navigate-finish",
         handleNavigation
     );
 
-    // -----------------------------
     // Keyboard shortcuts
-    // -----------------------------
 
     document.addEventListener("keydown", (event) => {
         const target = event.target;
