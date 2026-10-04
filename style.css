@@ -248,17 +248,38 @@
 
 .youtube-clipper-playhead {
     position: absolute;
-    top: -6px;
+    top: -22px;
+    width: 30px;
+    height: 44px;
 
-    width: 2px;
-    height: 20px;
-
-    background: #ff4e45;
-
-    pointer-events: none;
+    background: transparent;
     transform: translateX(-50%);
+
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+    pointer-events: auto;
+    z-index: 2;
 }
 
+.youtube-clipper-playhead::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 6px;
+
+    background: #ff4e45;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+/* Keep the boundary handles accessible when the marker overlaps them. */
+.youtube-clipper-handle {
+    z-index: 3;
+}
 
 /* --------------------------------
    Duration label
@@ -353,5 +374,37 @@
 .youtube-clipper-share:disabled {
     opacity: 0.5;
     cursor: default;
+}
+.youtube-clipper-handle {
+    width: 22px;
+    height: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #0f0f0f;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+
+    user-select: none;
+}
+.youtube-clipper-slider-info {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #aaa;
+}
+
+.youtube-clipper-slider-min {
+    text-align: left;
+}
+
+.youtube-clipper-slider-max {
+    text-align: right;
 }
 

@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "YouClip",
-  "version": "0.1",
+  "version": "0.2",
   "description": "Creates shareable clips from YouTube videos.",
-  "permissions": ["clipboardWrite"],
+  "permissions": ["clipboardWrite", "storage"],
 
   "content_scripts": [
     {

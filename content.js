@@ -106,17 +106,28 @@ if (window.__youtubeClipperInitialized) {
     modalHeader.className = "youtube-clipper-modal-header";
 
     const modalHeaderTitle = document.createElement("span");
-    modalHeaderTitle.textContent = "Create clip";
+modalHeaderTitle.textContent = "Create clip";
 
-    const closeButton = document.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "youtube-clipper-close";
-    closeButton.textContent = "×";
-    closeButton.title = "Cancel";
+const modalHeaderActions = document.createElement("div");
+modalHeaderActions.className = "youtube-clipper-header-actions";
 
-    modalHeader.appendChild(modalHeaderTitle);
-    modalHeader.appendChild(closeButton);
+const settingsButton = document.createElement("button");
+settingsButton.type = "button";
+settingsButton.className = "youtube-clipper-settings-button";
+settingsButton.textContent = "⚙";
+settingsButton.title = "Settings";
 
+const closeButton = document.createElement("button");
+closeButton.type = "button";
+closeButton.className = "youtube-clipper-close";
+closeButton.textContent = "×";
+closeButton.title = "Cancel";
+
+modalHeaderActions.appendChild(settingsButton);
+modalHeaderActions.appendChild(closeButton);
+
+modalHeader.appendChild(modalHeaderTitle);
+modalHeader.appendChild(modalHeaderActions);
     // Drag the panel by its header.
 (() => {
     let drag = null;
@@ -126,7 +137,13 @@ if (window.__youtubeClipperInitialized) {
     modalHeader.style.userSelect = "none";
 
     modalHeader.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0 || closeButton.contains(event.target)) return;
+        if (
+    event.button !== 0 ||
+    closeButton.contains(event.target) ||
+    settingsButton.contains(event.target)
+) {
+    return;
+}
 
         const rect = clipper.getBoundingClientRect();
 
@@ -183,6 +200,21 @@ if (window.__youtubeClipperInitialized) {
     modalHeader.addEventListener("lostpointercapture", finishDrag);
 })();
 
+//Settings
+    const DEFAULT_SETTINGS = {
+    defaultClipLength: 15,
+    minimumClipLength: 5,
+    decimalPlaces: 1
+};
+    let settings = { ...DEFAULT_SETTINGS };
+    function loadSettings() {
+    chrome.storage.local.get(DEFAULT_SETTINGS, (savedSettings) => {
+        settings = savedSettings;
+        refreshUi();
+    });
+}
+loadSettings();
+
     const titleInput = document.createElement("input");
     titleInput.type = "text";
     titleInput.className = "youtube-clipper-title-input";
@@ -237,9 +269,19 @@ if (window.__youtubeClipperInitialized) {
 
     const startHandle = document.createElement("div");
     startHandle.className = "youtube-clipper-handle youtube-clipper-handle-start";
+    startHandle.textContent = "S";
 
     const endHandle = document.createElement("div");
     endHandle.className = "youtube-clipper-handle youtube-clipper-handle-end";
+    endHandle.textContent = "E";
+
+    const sliderMinLabel = document.createElement("span");
+sliderMinLabel.className = "youtube-clipper-slider-min";
+sliderMinLabel.textContent = "0:00.0";
+
+const sliderMaxLabel = document.createElement("span");
+sliderMaxLabel.className = "youtube-clipper-slider-max";
+sliderMaxLabel.textContent = "0:00.0";
 
     track.appendChild(trackFill);
     track.appendChild(startHandle);
@@ -252,6 +294,13 @@ if (window.__youtubeClipperInitialized) {
 
     const durationLabel = document.createElement("div");
     durationLabel.className = "youtube-clipper-duration";
+
+    const sliderInfoRow = document.createElement("div");
+sliderInfoRow.className = "youtube-clipper-slider-info";
+
+sliderInfoRow.appendChild(sliderMinLabel);
+sliderInfoRow.appendChild(durationLabel);
+sliderInfoRow.appendChild(sliderMaxLabel);
 
     const modalFooter = document.createElement("div");
     modalFooter.className = "youtube-clipper-modal-footer";
@@ -279,7 +328,7 @@ if (window.__youtubeClipperInitialized) {
     clipper.appendChild(titleInput);
     clipper.appendChild(timeRow);
     clipper.appendChild(track);
-    clipper.appendChild(durationLabel);
+    clipper.appendChild(sliderInfoRow);
     clipper.appendChild(modalFooter);
 
     
@@ -340,17 +389,25 @@ if (window.__youtubeClipperInitialized) {
         return null;
     };
 
-    const clampRange = () => {
-        if (startTime === null || endTime === null || !videoDuration) {
-            return;
-        }
+    
 
-        const minimumLength = Math.min(0.5, videoDuration);
+const clampRange = () => {
+    if (startTime === null || endTime === null || !videoDuration) {
+        return;
+    }
 
-        startTime = clamp(startTime, 0, videoDuration - minimumLength);
-        endTime = clamp(endTime, startTime + minimumLength, videoDuration);
-    };
+    const minimumLength = Math.min(
+        settings.minimumClipLength,
+        videoDuration
+    );
 
+    startTime = clamp(startTime, 0, videoDuration - minimumLength);
+    endTime = clamp(
+        endTime,
+        startTime + minimumLength,
+        videoDuration
+    );
+};
     const updateInputs = () => {
         startTimeInput.value =
             startTime === null ? "" : formatTime(startTime);
@@ -409,8 +466,14 @@ if (window.__youtubeClipperInitialized) {
         updateTrackVisuals();
         updateDurationLabel();
         updatePlayheadMarker();
+        
 
         shareButton.disabled = !hasValidRange();
+        sliderMinLabel.textContent = formatTime(trackWindowStart);
+
+sliderMaxLabel.textContent = formatTime(
+    Math.min(trackWindowStart + trackWindowSize, videoDuration)
+);
     };
 
 
@@ -601,27 +664,14 @@ if (window.__youtubeClipperInitialized) {
         const time = ratioToTime(ratio);
         const video = getVideo();
 
-        // Re-center the window when dragging near its edges so users
-        // can keep scrubbing past what's currently visible.
 
-        const edgeThreshold = trackWindowSize * 0.1;
-
-        if (
-            time - trackWindowStart < edgeThreshold ||
-            trackWindowStart + trackWindowSize - time < edgeThreshold
-        ) {
-            trackWindowStart = clamp(
-                time - trackWindowSize / 2,
-                0,
-                Math.max(0, videoDuration - trackWindowSize)
-            );
-        }
+       
 
         if (draggingHandle === "start") {
             startTime = clamp(
                 time,
                 0,
-                endTime - 0.5
+                endTime - settings.minimumClipLength
             );
 
             if (video) {
@@ -630,7 +680,7 @@ if (window.__youtubeClipperInitialized) {
         } else {
             endTime = clamp(
                 time,
-                startTime + 0.5,
+                startTime + settings.minimumClipLength,
                 videoDuration
             );
 
@@ -655,30 +705,129 @@ if (window.__youtubeClipperInitialized) {
     startHandle.addEventListener("pointerdown", beginDrag("start"));
     endHandle.addEventListener("pointerdown", beginDrag("end"));
 
-    // Clicking the track jumps the nearest handle to that spot.
+// Drag the red marker to seek within the selected clip.
+let playheadPointerId = null;
 
-    track.addEventListener("pointerdown", (event) => {
-        if (
-            event.target === startHandle ||
-            event.target === endHandle ||
-            !videoDuration
-        ) {
-            return;
-        }
+const seekFromPlayheadPointer = (event) => {
+    const video = getVideo();
 
-        const rect = track.getBoundingClientRect();
-        const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-        const time = ratioToTime(ratio);
+    if (!video || !hasValidRange()) {
+        return;
+    }
 
-        const distanceToStart = Math.abs(time - startTime);
-        const distanceToEnd = Math.abs(time - endTime);
+    const rect = track.getBoundingClientRect();
 
-        draggingHandle = distanceToStart <= distanceToEnd ? "start" : "end";
-        onDragMove(event);
-        onDragEnd();
-    });
+    if (rect.width <= 0 || !trackWindowSize) {
+        return;
+    }
 
+    const ratio = clamp(
+        (event.clientX - rect.left) / rect.width,
+        0,
+        1
+    );
 
+    const seekTime = clamp(
+        ratioToTime(ratio),
+        startTime,
+        endTime
+    );
+
+    video.currentTime = seekTime;
+
+    // Update immediately rather than waiting for the tracking interval.
+    playheadMarker.style.display = "block";
+    playheadMarker.style.left = `${timeToRatio(seekTime) * 100}%`;
+};
+
+const finishPlayheadDrag = () => {
+    const pointerId = playheadPointerId;
+    playheadPointerId = null;
+
+    if (
+        pointerId !== null &&
+        playheadMarker.hasPointerCapture(pointerId)
+    ) {
+        playheadMarker.releasePointerCapture(pointerId);
+    }
+
+    updatePlayheadMarker();
+};
+
+const beginPlayheadDrag = (event) => {
+    event.stopPropagation();
+
+    if (
+        event.button !== 0 ||
+        playheadPointerId !== null ||
+        draggingHandle ||
+        !hasValidRange()
+    ) {
+        return;
+    }
+
+    const video = getVideo();
+
+    if (!video) {
+        return;
+    }
+
+    event.preventDefault();
+
+    stopLoopPreview();
+    video.pause();
+
+    playheadPointerId = event.pointerId;
+    playheadMarker.setPointerCapture(event.pointerId);
+
+    seekFromPlayheadPointer(event);
+};
+
+playheadMarker.addEventListener("pointerdown", beginPlayheadDrag);
+
+track.addEventListener("pointerdown", (event) => {
+    // White handles continue to adjust the clip boundaries.
+    if (
+        startHandle.contains(event.target) ||
+        endHandle.contains(event.target)
+    ) {
+        return;
+    }
+
+    beginPlayheadDrag(event);
+});
+
+playheadMarker.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== playheadPointerId) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    seekFromPlayheadPointer(event);
+});
+
+playheadMarker.addEventListener("pointerup", (event) => {
+    if (event.pointerId !== playheadPointerId) {
+        return;
+    }
+
+    event.stopPropagation();
+    seekFromPlayheadPointer(event);
+    finishPlayheadDrag();
+});
+
+playheadMarker.addEventListener("pointercancel", (event) => {
+    if (event.pointerId === playheadPointerId) {
+        finishPlayheadDrag();
+    }
+});
+
+playheadMarker.addEventListener("lostpointercapture", () => {
+    if (playheadPointerId !== null) {
+        finishPlayheadDrag();
+    }
+});
   
     // Sharing clip
    
@@ -711,9 +860,9 @@ if (window.__youtubeClipperInitialized) {
 
         if (endTime === null || endTime <= startTime) {
             endTime = Math.min(
-                videoDuration || startTime + 15,
-                startTime + 15
-            );
+    videoDuration || startTime + settings.defaultClipLength,
+    startTime + settings.defaultClipLength
+);
         }
 
         clampRange();
@@ -731,6 +880,7 @@ if (window.__youtubeClipperInitialized) {
         stopLoopPreview();
         stopPlayheadTracking();
         draggingHandle = null;
+        finishPlayheadDrag();
     };
 
     clipActionButton.onclick = (event) => {
