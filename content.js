@@ -98,6 +98,7 @@ if (window.__youtubeClipperInitialized) {
     let videoDuration = 0;
     let draggingHandle = null;
     let loopIntervalId = null;
+    let endPreviewActive = false;
 
     const clipper = document.createElement("div");
     clipper.id = "youtube-clipper-root";
@@ -106,7 +107,7 @@ if (window.__youtubeClipperInitialized) {
     modalHeader.className = "youtube-clipper-modal-header";
 
     const modalHeaderTitle = document.createElement("span");
-modalHeaderTitle.textContent = "Create clip";
+modalHeaderTitle.textContent = "Create clip with YouClip";
 
 const modalHeaderActions = document.createElement("div");
 modalHeaderActions.className = "youtube-clipper-header-actions";
@@ -496,9 +497,28 @@ sliderMaxLabel.textContent = formatTime(
     };
 
     const startPlayheadTracking = () => {
-        stopPlayheadTracking();
-        playheadIntervalId = setInterval(updatePlayheadMarker, 200);
-    };
+    stopPlayheadTracking();
+
+    playheadIntervalId = setInterval(() => {
+        const video = getVideo();
+
+        if (!video) {
+            return;
+        }
+
+        if (
+            endPreviewActive &&
+            endTime !== null &&
+            video.currentTime >= endTime
+        ) {
+            video.currentTime = endTime;
+            video.pause();
+            endPreviewActive = false;
+        }
+
+        updatePlayheadMarker();
+    }, 50);
+};
 
     const startLoopPreview = () => {
         const video = getVideo();
@@ -664,32 +684,39 @@ sliderMaxLabel.textContent = formatTime(
         const time = ratioToTime(ratio);
         const video = getVideo();
 
-
-       
-
         if (draggingHandle === "start") {
-            startTime = clamp(
-                time,
-                0,
-                endTime - settings.minimumClipLength
-            );
+    startTime = clamp(
+        time,
+        trackWindowStart,
+        endTime - settings.minimumClipLength
+    );
 
-            if (video) {
-                video.currentTime = startTime;
-            }
-        } else {
-            endTime = clamp(
-                time,
-                startTime + settings.minimumClipLength,
-                videoDuration
-            );
+    if (video) {
+        video.currentTime = startTime;
+    }
+} else {
+    endTime = clamp(
+        time,
+        startTime + settings.minimumClipLength,
+        Math.min(
+            trackWindowStart + trackWindowSize,
+            videoDuration
+        )
+    );
 
-            if (video) {
-                video.currentTime = endTime;
-            }
-        }
+    if (video) {
+        const previewStart = Math.max(
+            startTime,
+            endTime - 3
+        );
 
-        refreshUi();
+        video.currentTime = previewStart;
+        video.play();
+        endPreviewActive = true;
+    }
+}
+
+refreshUi();
     };
 
     const onDragEnd = () => {
@@ -876,12 +903,23 @@ playheadMarker.addEventListener("lostpointercapture", () => {
     };
 
     const closeModal = () => {
-        clipper.classList.remove("youtube-clipper-open");
-        stopLoopPreview();
-        stopPlayheadTracking();
-        draggingHandle = null;
-        finishPlayheadDrag();
-    };
+    clipper.classList.remove("youtube-clipper-open");
+    stopLoopPreview();
+
+    if (endPreviewActive) {
+        const video = getVideo();
+
+        if (video) {
+            video.pause();
+        }
+
+        endPreviewActive = false;
+    }
+
+    stopPlayheadTracking();
+    draggingHandle = null;
+    finishPlayheadDrag();
+};
 
     clipActionButton.onclick = (event) => {
         event.stopPropagation();
