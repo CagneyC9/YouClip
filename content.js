@@ -1,7 +1,7 @@
 console.log("YouTube Clipper loaded!");
 
 const CLIP_VIEWER_BASE_URL =
-    "https://youclip.stream/";
+    "https://youclip.stream";
 
 if (window.__youtubeClipperInitialized) {
     console.log("YouTube Clipper already initialized.");
@@ -312,15 +312,15 @@ sliderInfoRow.appendChild(sliderMaxLabel);
     cancelButton.className = "youtube-clipper-cancel";
     cancelButton.textContent = "Cancel";
 
-    const shareButton = document.createElement("button");
-    shareButton.type = "button";
-    shareButton.className = "youtube-clipper-share";
-    shareButton.textContent = "Share clip";
+    const copylinkbutton = document.createElement("button");
+    copylinkbutton.type = "button";
+    copylinkbutton.className = "youtube-clipper-share";
+    copylinkbutton.textContent = "Copy Link";
 
     const modalFooterActions = document.createElement("div");
     modalFooterActions.className = "youtube-clipper-modal-footer-actions";
     modalFooterActions.appendChild(cancelButton);
-    modalFooterActions.appendChild(shareButton);
+    modalFooterActions.appendChild(copylinkbutton);
 
 
     modalFooter.appendChild(modalFooterActions);
@@ -469,7 +469,7 @@ const clampRange = () => {
         updatePlayheadMarker();
         
 
-        shareButton.disabled = !hasValidRange();
+        copylinkbutton.disabled = !hasValidRange();
         sliderMinLabel.textContent = formatTime(trackWindowStart);
 
 sliderMaxLabel.textContent = formatTime(
@@ -551,7 +551,7 @@ sliderMaxLabel.textContent = formatTime(
         titleInput.value = "";
 
         stopLoopPreview();
-        shareButton.textContent = "Share clip";
+        copylinkbutton.textContent = "Copy Link";
 
         refreshUi();
 
@@ -608,14 +608,14 @@ sliderMaxLabel.textContent = formatTime(
 
             console.log("Copied:", clipUrl.toString());
 
-            shareButton.textContent = "Copied!";
+            copylinkbutton.textContent = "Copied!";
 
             setTimeout(() => {
-                shareButton.textContent = "Share clip";
+                copylinkbutton.textContent = "Copy Link";
             }, 1500);
         } catch (error) {
             console.error("Clipboard copy failed:", error);
-            shareButton.textContent = "Share clip";
+            copylinkbutton.textContent = "Share clip";
         }
     };
 
@@ -855,11 +855,57 @@ playheadMarker.addEventListener("lostpointercapture", () => {
         finishPlayheadDrag();
     }
 });
+// When the user seeks on YouTube itself,
+// move the clip range to the new video position.
+let ignoreYouTubeSeek = false;
+
+const syncClipToVideoSeek = () => {
+    const video = getVideo();
+
+    if (
+        !video ||
+        !videoDuration ||
+        !clipper.classList.contains("youtube-clipper-open")
+    ) {
+        return;
+    }
+
+    // Don't reset the clip when YouClip itself is seeking.
+    if (
+        draggingHandle ||
+        playheadPointerId !== null ||
+        endPreviewActive
+    ) {
+        return;
+    }
+
+    const newStart = video.currentTime;
+
+    startTime = newStart;
+
+    endTime = Math.min(
+        newStart + settings.defaultClipLength,
+        videoDuration
+    );
+
+    // Keep the minimum clip length valid near the end of the video.
+    clampRange();
+
+    // Center the visible slider window around the new start point.
+    centerTrackWindow(startTime);
+
+    refreshUi();
+};
+document.addEventListener("seeked", (event) => {
+    if (event.target === getVideo()) {
+        syncClipToVideoSeek();
+    }
+}, true);
   
     // Sharing clip
    
 
-    shareButton.onclick = async () => {
+    copylinkbutton.onclick = async () => {
         if (!hasValidRange()) {
             return;
         }
@@ -974,7 +1020,7 @@ playheadMarker.addEventListener("lostpointercapture", () => {
             actions.querySelectorAll("button")
         );
 
-        const shareButton = buttons.find((button) => {
+        const copylinkbutton = buttons.find((button) => {
             const label =
                 button.getAttribute("aria-label") || "";
 
@@ -988,8 +1034,8 @@ playheadMarker.addEventListener("lostpointercapture", () => {
         });
 
 
-        if (shareButton) {
-            const shareContainer = shareButton.closest(
+        if (copylinkbutton) {
+            const shareContainer = copylinkbutton.closest(
                 "ytd-button-renderer, ytd-toggle-button-renderer"
             );
 
