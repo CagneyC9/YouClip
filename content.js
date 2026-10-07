@@ -60,6 +60,10 @@ if (window.__youtubeClipperInitialized) {
     clipUrl.searchParams.set("t", startTime.toFixed(1));
     clipUrl.searchParams.set("end", endTime.toFixed(1));
 
+    if (clipTitle.trim()) {
+        clipUrl.searchParams.set("title", clipTitle.trim());
+    }
+
     return clipUrl;
 };
 
@@ -625,6 +629,34 @@ sliderMaxLabel.textContent = formatTime(
     titleInput.addEventListener("input", () => {
         clipTitle = titleInput.value;
     });
+
+    // Saves a clip locally in the extension
+const saveClip = () => {
+    const videoId = getVideoId();
+
+    if (!videoId || !hasValidRange()) {
+        return;
+    }
+
+    const clip = {
+        id: crypto.randomUUID(),
+        videoId: videoId,
+        start: startTime,
+        end: endTime,
+        clipTitle: clipTitle.trim(),
+        savedAt: Date.now()
+    };
+
+    chrome.storage.local.get({ savedClips: [] }, (result) => {
+        const savedClips = result.savedClips;
+
+        savedClips.push(clip);
+
+        chrome.storage.local.set({ savedClips }, () => {
+            console.log("Clip saved:", clip);
+        });
+    });
+};
 
    
     // Lets you enter times manually

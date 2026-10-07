@@ -16,6 +16,7 @@ async function handleWatchPage(request, env, url) {
     const videoId = url.searchParams.get("v");
     const start = url.searchParams.get("t");
     const end = url.searchParams.get("end");
+    const clipTitle = url.searchParams.get("title")?.trim() || "";
 
     // If this isn't a valid-looking clip URL,
     // just serve the normal watch page.
@@ -57,6 +58,7 @@ async function handleWatchPage(request, env, url) {
         }
     } catch (error) {
         console.error("Could not get YouTube title:", error);
+        const displayTitle = clipTitle || videoTitle;
     }
 
     const thumbnail =
@@ -67,13 +69,13 @@ async function handleWatchPage(request, env, url) {
 
     const socialTags = `
         <meta property="og:site_name" content="YouClip">
-        <meta property="og:title" content="${escapeHtml(videoTitle)}">
+        <meta property="og:title" content="${escapeHtml(displayTitle)}">
         <meta property="og:description" content="${description}">
         <meta property="og:image" content="${thumbnail}">
         <meta property="og:type" content="website">
 
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="${escapeHtml(videoTitle)}">
+        <meta name="twitter:title" content="${escapeHtml(displayTitle)}">
         <meta name="twitter:description" content="${description}">
         <meta name="twitter:image" content="${thumbnail}">
     `;
