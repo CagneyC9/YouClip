@@ -36,6 +36,29 @@ async function handleWatchPage(request, env, url) {
 
     let html = await response.text();
 
+    // Get the YouTube video's title.
+    let videoTitle = "YouClip";
+
+    try {
+        const youtubeUrl =
+            `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+
+        const oembedUrl =
+            `https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`;
+
+        const oembedResponse = await fetch(oembedUrl);
+
+        if (oembedResponse.ok) {
+            const data = await oembedResponse.json();
+
+            if (data.title) {
+                videoTitle = data.title;
+            }
+        }
+    } catch (error) {
+        console.error("Could not get YouTube title:", error);
+    }
+
     const thumbnail =
         `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
@@ -44,13 +67,13 @@ async function handleWatchPage(request, env, url) {
 
     const socialTags = `
         <meta property="og:site_name" content="YouClip">
-        <meta property="og:title" content="YouClip">
+        <meta property="og:title" content="${escapeHtml(videoTitle)}">
         <meta property="og:description" content="${description}">
         <meta property="og:image" content="${thumbnail}">
         <meta property="og:type" content="website">
 
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="YouClip">
+        <meta name="twitter:title" content="${escapeHtml(videoTitle)}">
         <meta name="twitter:description" content="${description}">
         <meta name="twitter:image" content="${thumbnail}">
     `;
@@ -77,4 +100,12 @@ function formatTime(value) {
     const remainder = Math.floor(seconds % 60);
 
     return `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }
