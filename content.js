@@ -515,7 +515,6 @@ sliderMaxLabel.textContent = formatTime(
             endTime !== null &&
             video.currentTime >= endTime
         ) {
-            video.currentTime = endTime;
             video.pause();
             endPreviewActive = false;
         }
@@ -697,14 +696,35 @@ const saveClip = () => {
     
     // For dragging slider element
 
-    const beginDrag = (which) => (event) => {
-        event.preventDefault();
-        draggingHandle = which;
-        stopLoopPreview();
+  const beginDrag = (which) => (event) => {
+    if (event.button !== 0) {
+        return;
+    }
 
-        document.addEventListener("pointermove", onDragMove);
-        document.addEventListener("pointerup", onDragEnd);
-    };
+    event.preventDefault();
+    event.stopPropagation();
+
+    draggingHandle = which;
+    stopLoopPreview();
+
+    const video = getVideo();
+
+    if (video && hasValidRange()) {
+        video.currentTime =
+            which === "start"
+                ? startTime
+                : Math.max(startTime, endTime - 3);
+
+        endPreviewActive = true;
+
+        video.play().catch((error) => {
+            console.warn("Could not start clip preview:", error);
+        });
+    }
+
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragEnd);
+};
 
     const onDragMove = (event) => {
         if (!draggingHandle || !videoDuration) {
@@ -724,7 +744,10 @@ const saveClip = () => {
     );
 
     if (video) {
+        
         video.currentTime = startTime;
+         video.play();
+        endPreviewActive = true;
     }
 } else {
     endTime = clamp(
